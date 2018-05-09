@@ -1,109 +1,59 @@
 import sys
+import math
 
-class Graph:
-    # constructor
-    def __init__(self):
-        self.height     = 0
-        self.width      = 0
-        self.name       = 'no name'
-        self.list       = []
-        self.graph      = {}
+from PIL import Image
+from PIL import ImageDraw
 
-    # function to transform the chart list in a graph
-    def build_graph (self):
-        map_list    = self.list
-        map_width   = self.width
-        map_height  = self.height
+from graph import Graph
 
-        for pos in range (0, len(map_list)):
-            
-            if (map_list[pos] == '.'):
-                north       = pos - map_width
-                northeast   = pos - map_width + 1
-                northwest   = pos - map_width
-                south       = pos + map_width
-                southeast   = pos + map_width + 1
-                southwest   = pos + map_width - 1
-                west        = pos - 1
-                east        = pos + 1
+from search_algorithms.ids import ids
+from search_algorithms.aestrela import aestrela
+from search_algorithms.ucs import ucs
+from search_algorithms.bfs import bfs
 
-                # add north
-                if (north >= 0):
-                    self.add_edge(pos, pos - map_width, 1.0)
-                    
-                # add south
-                if (south <= (map_width * map_height)):
-                    self.add_edge(pos, pos + map_width, 1.0)
-
-                # if it isn't on the extreme right
-                if ((pos + 1) % map_width != 0):
-                    # add east
-                    if (east <= (map_width * map_height)):
-                        self.add_edge(pos, pos + 1, 1.0)
-                    
-                    # add northeast if it exists in list
-                    if (northeast - 1 >= 0):
-                        self.add_edge(pos, northeast, 1.5)
-                    
-                    # add southeast if it exists in list
-                    if ((southeast + 1) <= (map_width * map_height)):
-                        self.add_edge(pos, southeast, 1.5)
-
-                # if it isn't on the extreme left
-                if ((pos - 1) >= 0 and (pos % map_width != 0)):
-                    # add west
-                    self.add_edge(pos, west, 1.0)
-
-                    # add northwest if it exists
-                    if (northwest - 1 >= 0):
-                        self.add_edge(pos, northwest - 1, 1.5)
-
-                    # add southwest if it exists
-                    if (southwest <= (map_width * map_height)):
-                        self.add_edge(pos, southwest, 1.5)
-    
-    # function to read input text file
-    def read_map (self, map_name):
-        map_file    = open(map_name,'r')
-
-        map_type    = map_file.readline().rstrip('\n')
-        map_height  = int(map_file.readline().rstrip('\n').split()[1])
-        map_width   = int(map_file.readline().rstrip('\n').split()[1])
-        map_name    = map_file.readline().rstrip('\n')
-
-        map_list = []
-        
-        for _ in range(map_height + 1):
-            line = map_file.readline().rstrip('\n')
-
-            for char in line:
-                map_list.append(char)
-        
-        self.height = map_height
-        self.width  = map_width
-        self.name   = map_name
-        self.list   = map_list
-    
-    # add new edge in graph dictionary
-    def add_edge (self, u, v, weight):
-        if u in self.graph:
-            self.graph[u].update({v: weight})
-        else:
-            self.graph[u] = {v: weight}
+from utils import create_map_image, escreve_output, define_custo
 
 if __name__ == '__main__':
     try:
-        map_name        = sys.argv[1]
-        state_beginning = sys.argv[2]
-        state_final     = sys.argv[3]
+        map_name = sys.argv[1]
 
-        if (len(sys.argv) == 5):
-            heuristic = sys.argv[4]
+        inicial_y = int(sys.argv[2])
+        inicial_x = int(sys.argv[3])
+
+        final_y = int(sys.argv[4])
+        final_x = int(sys.argv[5])
+
+        algoritmo_escolhido = sys.argv[6]
+
+        if (algoritmo_escolhido == 'aestrela'):
+            heuristica = sys.argv[7]
+
     except:
         print ('A entrada deve seguir o padrão python main.py <map_name> <beginning_state> <final_state>')
     
     g = Graph()
     g.read_map(map_name)
     g.build_graph()
+    
+    img = create_map_image(g)
+    
+    vertice_inicial = g.width * inicial_y + inicial_x
+    vertice_final = g.width * final_y + final_x
 
-    print (g.graph[7])
+    algoritmos = {'ids': ids, 'ucs': ucs, 'bfs': bfs, 'aestrela': aestrela}
+
+    if (algoritmo_escolhido == 'aestrela'):
+        caminho = algoritmos[algoritmo_escolhido] (g, vertice_inicial, vertice_final, img, heuristica)
+    else:
+        caminho = algoritmos[algoritmo_escolhido] (g, vertice_inicial, vertice_final, img)
+    
+    img = escreve_output (caminho, g, img)
+    
+    # draw = ImageDraw.Draw(img)
+    # draw.text((1, 0),algoritmo_escolhido + ' <' + str(inicial_y) + ', ' + str(inicial_x) + '> -> ' + ' <' + str(final_y) + ', ' + str(final_x) + '> ' + str(define_custo(g, caminho)[0]),(0,255,0))
+
+    # if (algoritmo_escolhido == 'aestrela'):
+    #     draw.text((1, 15),heuristica,(0,255,0))
+    #     img.resize((1024,1024), resample=Image.NEAREST).save(algoritmo_escolhido + heuristica + '.jpeg', format="jpeg", dpi=(800,800), resolution=1024)
+    # else:
+    #     img.resize((1024,1024), resample=Image.NEAREST).save(algoritmo_escolhido + '.jpeg', format="jpeg", dpi=(800,800), resolution=1024)
